@@ -1,0 +1,3 @@
+Un hilo toma trabajos de la cola.
+Si el hilo falla, los demas hilos siguen trabajando.
+La cola nunca supera su capacidad.

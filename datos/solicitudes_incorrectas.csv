@@ -1,0 +1,12 @@
+# Cada línea (salvo la primera) debe ser RECHAZADA por un motivo distinto
+id;operacion;ruta;parametros
+X001;ANALIZAR_TEXTO;datos/texto1.txt;
+X001;ANALIZAR_TEXTO;datos/texto2.txt;
+X002;COMPRIMIR;datos/texto1.txt;
+;ANALIZAR_TEXTO;datos/texto1.txt;
+X003;BUSCAR_TEXTO;datos/texto1.txt;
+X004;ESTADISTICAS_CSV;datos/ventas.csv;abc
+X005;ESTADISTICAS_CSV;datos/ventas.csv;0
+X006;ANALIZAR_TEXTO;;
+X007;ANALIZAR_TEXTO
+X 008;ANALIZAR_TEXTO;datos/texto1.txt;

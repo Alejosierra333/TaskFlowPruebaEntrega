@@ -1,0 +1,4 @@
+TaskFlow gestiona tareas concurrentes.
+Cada tarea se ejecuta en un hilo trabajador.
+
+La tarea mas importante es no perder ninguna tarea.

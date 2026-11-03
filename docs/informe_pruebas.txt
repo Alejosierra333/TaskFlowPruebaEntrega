@@ -1,0 +1,67 @@
+
+=== PRUEBA 1: Ejecución normal ===
+Entrada:       5 solicitudes válidas (2 ANALIZAR/BUSCAR texto, 1 BUSCAR, 2 ESTADISTICAS_CSV con proceso hijo)
+Procedimiento: Enviar las solicitudes, cerrar y comparar cada resultado con los valores calculados a mano.
+Esperado:      5 trabajos COMPLETADO, con los recuentos exactos (p. ej. N1: 4 líneas, 21 palabras, 133 caracteres; N3: 5 válidos, suma 81.00, 2 descartados).
+Obtenido:      COMPLETADOS=5; N1=[lineas=4 palabras=21 caracteres=133 tiempo=18ms]; N3=[cantidad=5;suma=81.00;media=16.20;minimo=5.25;maximo=30.25;descartados=2]; BALANCE: aceptados=5 | completados=5 + fallidos=0 + cancelados=0 = 5 -> CORRECTO
+RESULTADO:     OK
+
+=== PRUEBA 2: 100 solicitudes ===
+Entrada:       datos/solicitudes_100.csv (50 ANALIZAR_TEXTO, 30 BUSCAR_TEXTO, 20 ESTADISTICAS_CSV)
+Procedimiento: Cargar las 100 solicitudes con 4 trabajadores y cola de 20; sumar los trabajos que ha procesado cada trabajador (Future).
+Esperado:      100 aceptados, 100 COMPLETADO, suma de procesados por los 4 trabajadores = 100 (ninguno perdido ni duplicado).
+Obtenido:      aceptadas=100, COMPLETADO=100, procesados por trabajador=[38, 26, 24, 12] (suma 100), máx. cola=20. BALANCE: aceptados=100 | completados=100 + fallidos=0 + cancelados=0 = 100 -> CORRECTO
+RESULTADO:     OK
+
+=== PRUEBA 3: Cola saturada ===
+Entrada:       40 solicitudes enviadas de golpe; cola de capacidad 5; cada trabajo tarda 1 s; espera máxima por hueco 50 ms
+Procedimiento: Enviar las 40 y observar cuántas se aceptan/rechazan y el máximo de la cola.
+Esperado:      La cola nunca pasa de 5; las que no caben se RECHAZAN (no cuentan como aceptadas); aceptadas + rechazadas = 40; todas las aceptadas terminan.
+Obtenido:      aceptadas=13, rechazadas por cola llena=27, máx. cola observado=5 (capacidad 5), COMPLETADO=13. BALANCE: aceptados=13 | completados=13 + fallidos=0 + cancelados=0 = 13 -> CORRECTO
+RESULTADO:     OK
+
+=== PRUEBA 4: Archivo o datos incorrectos ===
+Entrada:       F1 archivo inexistente, F2 archivo binario, F3 búsqueda con un archivo inexistente, F4 CSV sin números; G1 y G2 correctos
+Procedimiento: Enviar los 6 trabajos mezclados y revisar el estado y el motivo de cada uno.
+Esperado:      F1-F4 FALLIDO con su motivo; G1 y G2 COMPLETADO (el fallo de unos no afecta a los demás).
+Obtenido:      FALLIDO=4, COMPLETADO=2; F1=[archivo no encontrado: datos/no_existe.txt]; F2=[el archivo no es texto UTF-8 válido: datos/binario.bin]; F4=[el proceso hijo terminó con código 3: ningún registro válido en la columna 1 (descartados=3)]
+RESULTADO:     OK
+
+=== PRUEBA 5: Error del proceso hijo ===
+Entrada:       H1 CSV inexistente, H2 CSV sin datos válidos, H3 y H4 correctos; después K1 y K2 con hijo que supera el tiempo máximo (1 s)
+Procedimiento: Enviar los trabajos; en 5b el hijo duerme 5 s con límite de 1 s. Comprobar estados y que no quedan procesos hijos vivos.
+Esperado:      H1 FALLIDO (código 2), H2 FALLIDO (código 3), H3/H4 COMPLETADO; K1/K2 FALLIDO por tiempo máximo en ~1 s y 0 procesos hijos residuales.
+Obtenido:      5a: H1=[el proceso hijo terminó con código 2: archivo no encontrado: datos/no_existe.csv], H2=[el proceso hijo terminó con código 3: ningún registro válido en la columna 1 (descartados=3)], H3=COMPLETADO, H4=COMPLETADO | 5b: K1=[tiempo máximo superado (1000 ms): proceso hijo finalizado a la fuerza], duración total=1220 ms, hijos vivos=0
+RESULTADO:     OK
+
+=== PRUEBA 6: Cancelación de un trabajo pendiente ===
+Entrada:       7 trabajos de 1,5 s: B1-B4 ocupan los 4 trabajadores, C1-C3 esperan en cola. Se cancelan C2 y C3 (y se intenta cancelar B1, que ya se ejecuta)
+Procedimiento: Enviar, esperar 300 ms, cancelar, cerrar y revisar estados y hora de inicio.
+Esperado:      C2 y C3 CANCELADO sin hora de inicio (nunca se ejecutaron); B1 no se puede cancelar; C1 y B1-B4 COMPLETADO; cancelar dos veces se rechaza.
+Obtenido:      B1: 'No se puede cancelar B1: su estado es EJECUTANDO (solo se cancelan PENDIENTE o EN_COLA).' | C2: 'Trabajo C2 cancelado.' | repetir C2: 'No se puede cancelar C2: su estado es CANCELADO (solo se cancelan PENDIENTE o EN_COLA).' | inicio de C2=null | COMPLETADO=5, CANCELADO=2. BALANCE: aceptados=7 | completados=5 + fallidos=0 + cancelados=2 = 7 -> CORRECTO
+RESULTADO:     OK
+
+=== PRUEBA 7: Límite de recursos (máx. 2 procesos hijo) ===
+Entrada:       12 trabajos ESTADISTICAS_CSV con 4 trabajadores (los 4 intentan lanzar un hijo a la vez); cada hijo dura >= 0,5 s
+Procedimiento: Contar los hijos simultáneos de dos formas: contador interno del lanzador y muestreo cada 10 ms de los procesos hijos reales del sistema operativo.
+Esperado:      Máximo simultáneo <= 2 en ambas mediciones y los 12 trabajos COMPLETADO.
+Obtenido:      máx. según el lanzador=2, máx. medido en el sistema=2, COMPLETADO=12. BALANCE: aceptados=12 | completados=12 + fallidos=0 + cancelados=0 = 12 -> CORRECTO
+RESULTADO:     OK
+
+=== PRUEBA 8: Cierre controlado ===
+Entrada:       15 trabajos (8 de texto + 7 con proceso hijo) y orden de cierre mientras aún hay trabajos pendientes; después, un envío nuevo
+Procedimiento: Llamar a cerrar(); comprobar balance, que el envío posterior se rechaza, que no quedan hilos ni procesos hijo, y que se generan resultados.csv e incidencias.txt.
+Esperado:      Política: se terminan los pendientes. ACEPTADOS (15) = COMPLETADOS + FALLIDOS + CANCELADOS; envío posterior RECHAZADO; 0 hilos TaskFlow vivos; 0 hijos vivos; archivos generados.
+Obtenido:      BALANCE: aceptados=15 | completados=15 + fallidos=0 + cancelados=0 = 15 -> CORRECTO | envío tras el cierre: 'RECHAZADO: el sistema se está cerrando' | hilos vivos=[] | hijos vivos=0 | archivos de salida=true
+RESULTADO:     OK
+
+=== PRUEBA 9: Validación de solicitudes (extra) ===
+Entrada:       datos/solicitudes_incorrectas.csv: 1 válida + 9 incorrectas (id duplicado, operación desconocida, id vacío, falta término, columna no numérica, columna 0, ruta vacía, formato, id con espacio)
+Procedimiento: Cargar el archivo y contar aceptadas y rechazadas.
+Esperado:      1 aceptada y 9 rechazadas; las rechazadas NO cuentan como trabajos aceptados.
+Obtenido:      líneas=10, aceptadas=1, rechazadas=9. BALANCE: aceptados=1 | completados=1 + fallidos=0 + cancelados=0 = 1 -> CORRECTO
+RESULTADO:     OK
+
+==============================================
+RESUMEN: 9 de 9 pruebas correctas
+==============================================
