@@ -1,5 +1,0 @@
-RESUMEN DE INCIDENCIAS
-BALANCE: aceptados=15 | completados=15 + fallidos=0 + cancelados=0 = 15 -> CORRECTO
-Rechazadas por validación: 1 | Rechazadas por cola llena: 0
----
-RECHAZADA (validación): Z16;ANALIZAR_TEXTO;datos/texto1.txt; -> el sistema se está cerrando

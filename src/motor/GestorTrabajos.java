@@ -87,7 +87,8 @@ public class GestorTrabajos {
         if (config.resumenSegundos > 0) {
             monitor.scheduleAtFixedRate(() -> {
                 try {
-                    System.out.println("\n[RESUMEN] " + resumen());
+                    // Solo se muestra si hay actividad, para no llenar la consola cuando no hay trabajos.
+                    if (cola.size() > 0 || ocupados.get() > 0) System.out.println("\n[RESUMEN] " + resumen());
                 } catch (RuntimeException e) {
                     System.err.println("Error en el monitor: " + e);
                 }
@@ -184,11 +185,13 @@ public class GestorTrabajos {
                 }
                 if (!t.iniciar()) continue; // estaba CANCELADO: no se ejecuta
                 ocupados.incrementAndGet();
+                evento("[INICIO] " + t.getId() + " " + t.getTipoOperacion() + " (" + Thread.currentThread().getName() + ")");
                 try {
                     ejecutar(t);
                 } finally {
                     ocupados.decrementAndGet();
                 }
+                evento("[FIN]    " + t.getId() + " " + t.getEstadoActual() + " en " + t.getDuracionMs() + " ms -> " + t.getResultado());
                 procesados++;
             }
         } catch (InterruptedException e) {
@@ -231,6 +234,13 @@ public class GestorTrabajos {
             }
         }
     }
+
+    private void evento(String mensaje) {
+        if (config.mostrarEventos) System.out.println("\n" + mensaje);
+    }
+
+    /** Classpath que se le pasa al proceso hijo (útil para diagnosticar problemas de arranque). */
+    public String getClasspathHijo() { return lanzador.getClasspath(); }
 
     private void pausaDeDemostracion() throws InterruptedException {
         if (config.retardoMs > 0) Thread.sleep(config.retardoMs);

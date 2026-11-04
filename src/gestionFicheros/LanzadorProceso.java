@@ -3,9 +3,16 @@ package gestionFicheros;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.File;
 import java.net.URISyntaxException;
+import java.security.CodeSource;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,14 +40,48 @@ public class LanzadorProceso {
     public LanzadorProceso(int maxProcesos, long timeoutMs) {
         this.permisos = new Semaphore(maxProcesos);
         this.timeoutMs = timeoutMs;
-        try {
-            // Carpeta (o jar) donde están las clases de TaskFlow, para que el hijo las encuentre.
-            this.clases = Path.of(LanzadorProceso.class.getProtectionDomain()
-                    .getCodeSource().getLocation().toURI()).toString();
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException("No se pudo localizar el directorio de clases", e);
-        }
+        this.clases = localizarClases();
     }
+
+    /**
+     * Busca dónde están las clases de TaskFlow para que el proceso hijo las encuentre.
+     * Se prueban varias fuentes (donde está esta clase, classpath, module path y ./bin), porque según
+     * se ejecute (consola, Eclipse en modo módulo, jar) la información está en un sitio u otro.
+     */
+    private static String localizarClases() {
+        Set<String> candidatos = new LinkedHashSet<>();
+        try {
+            CodeSource origen = LanzadorProceso.class.getProtectionDomain().getCodeSource();
+            if (origen != null) candidatos.add(Path.of(origen.getLocation().toURI()).toString());
+        } catch (URISyntaxException | RuntimeException e) {
+            // se prueban las demás fuentes
+        }
+        for (String propiedad : new String[] {"java.class.path", "jdk.module.path"}) {
+            String valor = System.getProperty(propiedad);
+            if (valor != null) {
+                for (String ruta : valor.split(File.pathSeparator)) {
+                    if (!ruta.isBlank()) candidatos.add(Path.of(ruta).toAbsolutePath().toString());
+                }
+            }
+        }
+        candidatos.add(Path.of("bin").toAbsolutePath().toString());
+
+        List<String> validos = new ArrayList<>();
+        for (String c : candidatos) {
+            Path ruta = Path.of(c);
+            boolean sirve = Files.isDirectory(ruta)
+                    ? Files.exists(ruta.resolve("operaciones").resolve("ProcesoEstadisticas.class"))
+                    : Files.isRegularFile(ruta); // un .jar
+            if (sirve) validos.add(c);
+        }
+        if (validos.isEmpty()) {
+            throw new IllegalStateException("No se encuentran las clases compiladas de TaskFlow (operaciones/ProcesoEstadisticas.class). "
+                    + "Compile el proyecto y ejecute desde la raíz. Rutas probadas: " + candidatos);
+        }
+        return String.join(File.pathSeparator, validos);
+    }
+
+    public String getClasspath() { return clases; }
 
     public int getMaximoSimultaneos() { return maximoSimultaneos.get(); }
     public int getLanzados() { return lanzados.get(); }

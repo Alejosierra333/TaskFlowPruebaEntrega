@@ -3,6 +3,7 @@ package main;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -24,9 +25,18 @@ public class Main {
             return;
         }
 
-        GestorTrabajos gestor = new GestorTrabajos(config);
-        System.out.println("TaskFlow listo (" + config.trabajadores + " trabajadores, cola de " + config.capacidadCola
-                + "). Escriba 'ayuda' para ver los comandos.");
+        GestorTrabajos gestor;
+        try {
+            gestor = new GestorTrabajos(config);
+        } catch (IllegalStateException e) {
+            System.err.println("No se puede iniciar TaskFlow: " + e.getMessage());
+            return;
+        }
+        System.out.println("TaskFlow listo (" + config.trabajadores + " trabajadores, cola de " + config.capacidadCola + ").");
+        System.out.println("Directorio de trabajo: " + Path.of("").toAbsolutePath());
+        System.out.println("Clases para el proceso hijo: " + gestor.getClasspathHijo());
+        System.out.println("TaskFlow espera órdenes: no ejecuta nada hasta que cargue o añada solicitudes.");
+        System.out.println("Para empezar escriba:   cargar datos/solicitudes_ejemplo.csv      ('ayuda' muestra todos los comandos)");
 
         BufferedReader entrada = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
@@ -64,7 +74,12 @@ public class Main {
     private static void cargar(GestorTrabajos gestor, String ruta) {
         if (ruta.isEmpty()) { System.out.println("Uso: cargar <archivo.csv>"); return; }
         try {
-            List<String> lineas = GestorCSV.leerSolicitudes(Path.of(ruta));
+            Path archivo = Path.of(ruta);
+            if (!Files.exists(archivo) && Files.exists(Path.of("datos").resolve(ruta))) {
+                archivo = Path.of("datos").resolve(ruta); // atajo: "cargar solicitudes_100.csv"
+                System.out.println("(usando " + archivo + ")");
+            }
+            List<String> lineas = GestorCSV.leerSolicitudes(archivo);
             int aceptadas = 0, rechazadas = 0;
             for (String l : lineas) {
                 String r = gestor.enviar(l);
@@ -78,13 +93,15 @@ public class Main {
             System.out.println("Cargadas " + lineas.size() + " solicitudes: " + aceptadas + " aceptadas, " + rechazadas + " rechazadas.");
         } catch (IOException e) {
             System.out.println("No se pudo leer el archivo de solicitudes: " + e);
+            System.out.println("Las rutas son relativas al directorio de trabajo: " + Path.of("").toAbsolutePath()
+                    + "  (debe ser la carpeta raíz del proyecto)");
         }
     }
 
     private static void ayuda() {
         System.out.println("""
                 Comandos:
-                  cargar <archivo.csv>              carga solicitudes desde un CSV    (cargar datos/solicitudes_ejemplo.csv)
+                  cargar <archivo.csv>              carga solicitudes desde un CSV    (cargar datos/solicitudes_100.csv)
                   anadir id;operacion;ruta;param    añade una solicitud               (anadir A1;ANALIZAR_TEXTO;datos/texto1.txt;)
                   estado <id>                       muestra el estado de un trabajo   (estado T001)
                   cancelar <id>                     cancela un trabajo que no ha empezado

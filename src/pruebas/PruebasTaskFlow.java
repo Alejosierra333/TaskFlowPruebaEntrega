@@ -250,7 +250,7 @@ public class PruebasTaskFlow {
 
         boolean ok = lineas.size() == 10 && aceptadas == 1 && g.getRechazadasValidacion() == 9
                 && g.getAceptados() == 1 && g.balanceCorrecto();
-        informe(9, "Validación de solicitudes (extra)",
+        informe(8, "Validación de solicitudes (extra)",
                 "datos/solicitudes_incorrectas.csv: 1 válida + 9 incorrectas (id duplicado, operación desconocida, id vacío, falta término, columna no numérica, columna 0, ruta vacía, formato, id con espacio)",
                 "Cargar el archivo y contar aceptadas y rechazadas.",
                 "1 aceptada y 9 rechazadas; las rechazadas NO cuentan como trabajos aceptados.",

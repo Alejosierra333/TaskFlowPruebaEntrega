@@ -10,9 +10,11 @@ public class Configuracion {
     public int resumenSegundos = 5;         // cada cuánto se imprime el resumen (0 = desactivado)
     public int cierreSegundos = 60;         // tiempo máximo de espera al cerrar
     public String dirSalida = "salida";     // carpeta de resultados.csv e incidencias.txt
+    public boolean mostrarEventos = false;  // imprime [INICIO] y [FIN] de cada trabajo (la consola lo activa)
 
     public static Configuracion desdeArgumentos(String[] args) {
         Configuracion c = new Configuracion();
+        c.mostrarEventos = true; // en la consola interesa ver qué hace cada trabajador
         for (String a : args) {
             String[] kv = a.split("=", 2);
             if (kv.length != 2) {
@@ -28,6 +30,7 @@ public class Configuracion {
                 case "resumen" -> c.resumenSegundos = Integer.parseInt(v);
                 case "cierre" -> c.cierreSegundos = Integer.parseInt(v);
                 case "salida" -> c.dirSalida = v;
+                case "eventos" -> c.mostrarEventos = Boolean.parseBoolean(v);
                 default -> throw new IllegalArgumentException("Opción desconocida: '" + kv[0] + "'");
             }
         }
