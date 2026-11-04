@@ -10,7 +10,7 @@ import gestionFicheros.GestorCSV;
 import motor.Configuracion;
 import motor.GestorTrabajos;
 
-/** Aplicación de consola de TaskFlow. */
+
 public class Main {
 
     public static void main(String[] args) throws IOException {

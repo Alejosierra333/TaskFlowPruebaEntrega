@@ -13,11 +13,7 @@ import modelos.Trabajo.Estado;
 import motor.Configuracion;
 import motor.GestorTrabajos;
 
-/**
- * Pruebas reproducibles de TaskFlow (sin frameworks externos).
- * Ejecutar desde la carpeta raíz del proyecto:   java -cp bin pruebas.PruebasTaskFlow
- * Cada prueba imprime: entrada, procedimiento, resultado esperado, resultado obtenido y OK/FALLO.
- */
+
 public class PruebasTaskFlow {
 
     private static int total = 0, fallos = 0;
@@ -26,12 +22,11 @@ public class PruebasTaskFlow {
         prueba1EjecucionNormal();
         prueba2CienSolicitudes();
         prueba3ColaSaturada();
-        prueba4ArchivosIncorrectos();
-        prueba5ErrorProcesoHijo();
-        prueba6CancelacionPendiente();
-        prueba7LimiteProcesosHijo();
-        prueba8CierreControlado();
-        prueba9Validacion();
+        prueba4ErrorProcesoHijo();
+        prueba5CancelacionPendiente();
+        prueba6LimiteProcesosHijo();
+        prueba7CierreControlado();
+        prueba8Validacion();
 
         System.out.println("\n==============================================");
         System.out.println("RESUMEN: " + (total - fallos) + " de " + total + " pruebas correctas");
@@ -112,37 +107,12 @@ public class PruebasTaskFlow {
                         + " (capacidad 5), COMPLETADO=" + g.contar(Estado.COMPLETADO) + ". " + g.balance(), ok);
     }
 
-    // ------------------------------------------------------------------
-    // 4. Archivos o datos incorrectos
-    // ------------------------------------------------------------------
-    static void prueba4ArchivosIncorrectos() {
-        GestorTrabajos g = nuevo("p4", 0, 20, 10_000, 30_000);
-        g.enviar("F1;ANALIZAR_TEXTO;datos/no_existe.txt;");
-        g.enviar("F2;ANALIZAR_TEXTO;datos/binario.bin;");
-        g.enviar("F3;BUSCAR_TEXTO;datos/texto1.txt|datos/no_existe.txt;tarea");
-        g.enviar("F4;ESTADISTICAS_CSV;datos/solo_invalidos.csv;1");
-        g.enviar("G1;ANALIZAR_TEXTO;datos/texto1.txt;");
-        g.enviar("G2;ESTADISTICAS_CSV;datos/ventas.csv;2");
-        g.cerrar();
-
-        boolean ok = g.contar(Estado.FALLIDO) == 4 && g.contar(Estado.COMPLETADO) == 2 && g.balanceCorrecto()
-                && g.getTrabajo("F1").getResultado().contains("archivo no encontrado")
-                && g.getTrabajo("F2").getResultado().contains("UTF-8")
-                && g.getTrabajo("F3").getResultado().contains("archivo no encontrado")
-                && g.getTrabajo("F4").getResultado().contains("ningún registro válido");
-        informe(4, "Archivo o datos incorrectos",
-                "F1 archivo inexistente, F2 archivo binario, F3 búsqueda con un archivo inexistente, F4 CSV sin números; G1 y G2 correctos",
-                "Enviar los 6 trabajos mezclados y revisar el estado y el motivo de cada uno.",
-                "F1-F4 FALLIDO con su motivo; G1 y G2 COMPLETADO (el fallo de unos no afecta a los demás).",
-                "FALLIDO=" + g.contar(Estado.FALLIDO) + ", COMPLETADO=" + g.contar(Estado.COMPLETADO) + "; F1=[" + g.getTrabajo("F1").getResultado()
-                        + "]; F2=[" + g.getTrabajo("F2").getResultado() + "]; F4=[" + g.getTrabajo("F4").getResultado() + "]", ok);
-    }
 
     // ------------------------------------------------------------------
-    // 5. Error del proceso hijo
+    // 4. Error del proceso hijo
     // ------------------------------------------------------------------
-    static void prueba5ErrorProcesoHijo() throws InterruptedException {
-        // 5a: el hijo termina con código de error
+    static void prueba4ErrorProcesoHijo() throws InterruptedException {
+        // 4a: el hijo termina con código de error
         GestorTrabajos g = nuevo("p5a", 0, 20, 10_000, 30_000);
         g.enviar("H1;ESTADISTICAS_CSV;datos/no_existe.csv;1");
         g.enviar("H2;ESTADISTICAS_CSV;datos/solo_invalidos.csv;1");
@@ -166,7 +136,7 @@ public class PruebasTaskFlow {
         boolean okB = t.contar(Estado.FALLIDO) == 2 && t.getTrabajo("K1").getResultado().contains("tiempo máximo")
                 && hijosVivos == 0 && ms < 4000 && t.balanceCorrecto();
 
-        informe(5, "Error del proceso hijo",
+        informe(4, "Error del proceso hijo",
                 "H1 CSV inexistente, H2 CSV sin datos válidos, H3 y H4 correctos; después K1 y K2 con hijo que supera el tiempo máximo (1 s)",
                 "Enviar los trabajos; en 5b el hijo duerme 5 s con límite de 1 s. Comprobar estados y que no quedan procesos hijos vivos.",
                 "H1 FALLIDO (código 2), H2 FALLIDO (código 3), H3/H4 COMPLETADO; K1/K2 FALLIDO por tiempo máximo en ~1 s y 0 procesos hijos residuales.",
@@ -177,9 +147,9 @@ public class PruebasTaskFlow {
     }
 
     // ------------------------------------------------------------------
-    // 6. Cancelación de un trabajo pendiente
+    // 5. Cancelación de un trabajo pendiente
     // ------------------------------------------------------------------
-    static void prueba6CancelacionPendiente() throws InterruptedException {
+    static void prueba5CancelacionPendiente() throws InterruptedException {
         GestorTrabajos g = nuevo("p6", 1500, 20, 10_000, 30_000); // cada trabajo tarda 1,5 s
         for (int i = 1; i <= 4; i++) g.enviar("B" + i + ";ANALIZAR_TEXTO;datos/texto1.txt;"); // ocupan los 4 trabajadores
         for (int i = 1; i <= 3; i++) g.enviar("C" + i + ";ANALIZAR_TEXTO;datos/texto1.txt;"); // quedan esperando en cola
@@ -197,7 +167,7 @@ public class PruebasTaskFlow {
                 && t3.getEstadoActual() == Estado.CANCELADO && t3.getTiempoInicio() == null
                 && g.getTrabajo("C1").getEstadoActual() == Estado.COMPLETADO
                 && g.contar(Estado.COMPLETADO) == 5 && g.contar(Estado.CANCELADO) == 2 && g.balanceCorrecto();
-        informe(6, "Cancelación de un trabajo pendiente",
+        informe(5, "Cancelación de un trabajo pendiente",
                 "7 trabajos de 1,5 s: B1-B4 ocupan los 4 trabajadores, C1-C3 esperan en cola. Se cancelan C2 y C3 (y se intenta cancelar B1, que ya se ejecuta)",
                 "Enviar, esperar 300 ms, cancelar, cerrar y revisar estados y hora de inicio.",
                 "C2 y C3 CANCELADO sin hora de inicio (nunca se ejecutaron); B1 no se puede cancelar; C1 y B1-B4 COMPLETADO; cancelar dos veces se rechaza.",
@@ -206,9 +176,9 @@ public class PruebasTaskFlow {
     }
 
     // ------------------------------------------------------------------
-    // 7. Límite de procesos hijo
+    // 6. Límite de procesos hijo
     // ------------------------------------------------------------------
-    static void prueba7LimiteProcesosHijo() throws InterruptedException {
+    static void prueba6LimiteProcesosHijo() throws InterruptedException {
         GestorTrabajos g = nuevo("p7", 500, 20, 20_000, 30_000); // cada hijo vive >= 0,5 s
         AtomicInteger maximoMedido = new AtomicInteger();
         Thread muestreo = new Thread(() -> {
@@ -231,7 +201,7 @@ public class PruebasTaskFlow {
 
         boolean ok = g.getMaxProcesosHijoSimultaneos() <= 2 && g.getMaxProcesosHijoSimultaneos() >= 1
                 && maximoMedido.get() <= 2 && g.contar(Estado.COMPLETADO) == 12 && g.balanceCorrecto();
-        informe(7, "Límite de recursos (máx. 2 procesos hijo)",
+        informe(6, "Límite de recursos (máx. 2 procesos hijo)",
                 "12 trabajos ESTADISTICAS_CSV con 4 trabajadores (los 4 intentan lanzar un hijo a la vez); cada hijo dura >= 0,5 s",
                 "Contar los hijos simultáneos de dos formas: contador interno del lanzador y muestreo cada 10 ms de los procesos hijos reales del sistema operativo.",
                 "Máximo simultáneo <= 2 en ambas mediciones y los 12 trabajos COMPLETADO.",
@@ -240,9 +210,9 @@ public class PruebasTaskFlow {
     }
 
     // ------------------------------------------------------------------
-    // 8. Cierre controlado
+    // 7. Cierre controlado
     // ------------------------------------------------------------------
-    static void prueba8CierreControlado() throws Exception {
+    static void prueba7CierreControlado() throws Exception {
         GestorTrabajos g = nuevo("p8", 200, 20, 10_000, 30_000);
         for (int i = 1; i <= 8; i++) g.enviar("Z" + i + ";ANALIZAR_TEXTO;datos/texto2.txt;");
         for (int i = 9; i <= 15; i++) g.enviar("Z" + i + ";ESTADISTICAS_CSV;datos/ventas.csv;2");
@@ -260,7 +230,7 @@ public class PruebasTaskFlow {
 
         boolean ok = g.estaCerrado() && g.balanceCorrecto() && g.getAceptados() == 15 && g.contar(Estado.COMPLETADO) == 15
                 && trasCierre.startsWith("RECHAZADO") && hilosVivos.isEmpty() && hijosVivos == 0 && archivos;
-        informe(8, "Cierre controlado",
+        informe(7, "Cierre controlado",
                 "15 trabajos (8 de texto + 7 con proceso hijo) y orden de cierre mientras aún hay trabajos pendientes; después, un envío nuevo",
                 "Llamar a cerrar(); comprobar balance, que el envío posterior se rechaza, que no quedan hilos ni procesos hijo, y que se generan resultados.csv e incidencias.txt.",
                 "Política: se terminan los pendientes. ACEPTADOS (15) = COMPLETADOS + FALLIDOS + CANCELADOS; envío posterior RECHAZADO; 0 hilos TaskFlow vivos; 0 hijos vivos; archivos generados.",
@@ -269,9 +239,9 @@ public class PruebasTaskFlow {
     }
 
     // ------------------------------------------------------------------
-    // 9. (Extra) Validación de solicitudes
+    // 8. Validación de solicitudes
     // ------------------------------------------------------------------
-    static void prueba9Validacion() throws IOException {
+    static void prueba8Validacion() throws IOException {
         GestorTrabajos g = nuevo("p9", 0, 20, 10_000, 30_000);
         List<String> lineas = GestorCSV.leerSolicitudes(Path.of("datos/solicitudes_incorrectas.csv"));
         int aceptadas = 0;

@@ -3,9 +3,7 @@
 **Módulo:** Programación de Servicios y Procesos · 2.º DAM · Curso 2026-2027
 **Grupo:** *[nombres de los integrantes]* **Repositorio:** *[URL]*
 
-> Nota: las secciones 8 (reparto del equipo) y 9 (dificultades) deben revisarse y completarse con la experiencia real del grupo.
 
----
 
 ## 1. Introducción
 
