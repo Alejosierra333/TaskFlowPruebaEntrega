@@ -36,13 +36,13 @@ public class Main {
         System.out.println("Directorio de trabajo: " + Path.of("").toAbsolutePath());
         System.out.println("Clases para el proceso hijo: " + gestor.getClasspathHijo());
         System.out.println("TaskFlow espera órdenes: no ejecuta nada hasta que cargue o añada solicitudes.");
-        System.out.println("Para empezar escriba:   cargar datos/solicitudes_ejemplo.csv      ('ayuda' muestra todos los comandos)");
+        System.out.println("Para empezar escriba:   cargar datos/solicitudes_100.csv      ('ayuda' muestra todos los comandos)");
 
         BufferedReader entrada = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             System.out.print("taskflow> ");
             String linea = entrada.readLine();
-            if (linea == null) break; // fin de la entrada = salir
+            if (linea == null) break; 
             linea = linea.trim();
             if (linea.isEmpty()) continue;
 
@@ -76,7 +76,7 @@ public class Main {
         try {
             Path archivo = Path.of(ruta);
             if (!Files.exists(archivo) && Files.exists(Path.of("datos").resolve(ruta))) {
-                archivo = Path.of("datos").resolve(ruta); // atajo: "cargar solicitudes_100.csv"
+                archivo = Path.of("datos").resolve(ruta); 
                 System.out.println("(usando " + archivo + ")");
             }
             List<String> lineas = GestorCSV.leerSolicitudes(archivo);

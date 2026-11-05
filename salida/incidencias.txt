@@ -1,0 +1,12 @@
+RESUMEN DE INCIDENCIAS
+BALANCE: aceptados=0 | completados=0 + fallidos=0 + cancelados=0 = 0 -> CORRECTO
+Rechazadas por validación: 8 | Rechazadas por cola llena: 0
+---
+RECHAZADA (validación): producto;importe;unidades -> operación desconocida: 'importe'
+RECHAZADA (validación): A;10.50;3 -> operación desconocida: '10.50'
+RECHAZADA (validación): B;20.00;5 -> operación desconocida: '20.00'
+RECHAZADA (validación): C;5.25;1 -> operación desconocida: '5.25'
+RECHAZADA (validación): D;abc;2 -> operación desconocida: 'abc'
+RECHAZADA (validación): E;;4 -> operación desconocida: ''
+RECHAZADA (validación): F;30.25;2 -> operación desconocida: '30.25'
+RECHAZADA (validación): G;15.00 -> formato incorrecto (se esperan: id;operacion;ruta;parametros)
