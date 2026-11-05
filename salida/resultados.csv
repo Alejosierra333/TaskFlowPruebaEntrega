@@ -1,1 +1,3 @@
 id;operacion;estado;duracion_ms;resultado_o_error
+V1;ESTADISTICAS_CSV;COMPLETADO;234;cantidad=5,suma=81.00,media=16.20,minimo=5.25,maximo=30.25,descartados=2
+V2;ESTADISTICAS_CSV;FALLIDO;216;el proceso hijo terminó con código 3: ningún registro válido en la columna 6 (descartados=7)

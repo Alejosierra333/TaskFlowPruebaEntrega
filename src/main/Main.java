@@ -102,7 +102,7 @@ public class Main {
         System.out.println("""
                 Comandos:
                   cargar <archivo.csv>              carga solicitudes desde un CSV    (cargar datos/solicitudes_100.csv)
-                  anadir id;operacion;ruta;param    añade una solicitud               (anadir A1;ANALIZAR_TEXTO;datos/texto1.txt;)
+                  añadir id;operacion;ruta;param    añade una solicitud               (añadir A1;ANALIZAR_TEXTO;datos/texto1.txt;)
                   estado <id>                       muestra el estado de un trabajo   (estado T001)
                   cancelar <id>                     cancela un trabajo que no ha empezado
                   estadisticas                      contadores generales
