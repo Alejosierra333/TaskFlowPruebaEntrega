@@ -11,6 +11,14 @@ import java.util.List;
 
 import modelos.Trabajo;
 
+/*
+ *     id;operacion;ruta;parametros
+ *   - Las líneas vacías y las que empiezan por '#' se ignoran.
+ *   - La línea de cabecera "id;operacion;..." se ignora.
+ *   - ruta: un archivo; en BUSCAR_TEXTO pueden ser varios separados por '|'.
+ *   - parametros: BUSCAR_TEXTO = término a buscar; ESTADISTICAS_CSV = nº de columna (por defecto 1);
+ *                 ANALIZAR_TEXTO = sin parámetros.
+ */
 public class GestorCSV {
 
     public static List<String> leerSolicitudes(Path archivo) throws IOException {
@@ -29,7 +37,7 @@ public class GestorCSV {
         return lineas;
     }
 
-   
+    /** resultados.csv: id;operacion;estado;duracion_ms;resultado_o_error */
     public static void escribirResultados(Path destino, Collection<Trabajo> trabajos) throws IOException {
         crearCarpeta(destino);
         try (BufferedWriter w = Files.newBufferedWriter(destino)) {
@@ -53,7 +61,7 @@ public class GestorCSV {
         if (padre != null) Files.createDirectories(padre);
     }
 
-    
+    // El texto del resultado no puede romper el CSV.
     private static String limpiar(String texto) {
         return texto.replace(';', ',').replace('\n', ' ').replace('\r', ' ');
     }
