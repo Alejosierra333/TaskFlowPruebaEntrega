@@ -1,20 +1,20 @@
 package motor;
 
-/** Parámetros de TaskFlow. Se pueden cambiar al arrancar con argumentos clave=valor. */
+
 public class Configuracion {
-    public int trabajadores = 4;            // hilos trabajadores
-    public int capacidadCola = 20;          // capacidad de la BlockingQueue
-    public long admisionMs = 10_000;        // espera máxima por un hueco si la cola está llena
-    public long timeoutProcesoMs = 30_000;  // tiempo máximo de un proceso hijo
-    public long retardoMs = 0;              // pausa artificial por trabajo (solo para pruebas/demos)
-    public int resumenSegundos = 5;         // cada cuánto se imprime el resumen (0 = desactivado)
-    public int cierreSegundos = 60;         // tiempo máximo de espera al cerrar
-    public String dirSalida = "salida";     // carpeta de resultados.csv e incidencias.txt
-    public boolean mostrarEventos = false;  // imprime [INICIO] y [FIN] de cada trabajo (la consola lo activa)
+    public int trabajadores = 4;            
+    public int capacidadCola = 20;          
+    public long admisionMs = 10_000;        
+    public long timeoutProcesoMs = 30_000; 
+    public long retardoMs = 0;              
+    public int resumenSegundos = 5;         
+    public int cierreSegundos = 60;         
+    public String dirSalida = "salida";    
+    public boolean mostrarEventos = false;  
 
     public static Configuracion desdeArgumentos(String[] args) {
         Configuracion c = new Configuracion();
-        c.mostrarEventos = true; // en la consola interesa ver qué hace cada trabajador
+        c.mostrarEventos = true; 
         for (String a : args) {
             String[] kv = a.split("=", 2);
             if (kv.length != 2) {

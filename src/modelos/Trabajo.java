@@ -4,21 +4,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Un trabajo aceptado por TaskFlow.
- *
- * Los cambios de estado SOLO se hacen con los métodos de abajo (marcarEnCola, iniciar,
- * completar, fallar, cancelar). Todos son "synchronized" y comprueban el estado de partida,
- * así que es imposible que un trabajo termine en dos estados distintos o se ejecute dos veces.
- *
- * Transiciones válidas:
- *   PENDIENTE  -> EN_COLA      (marcarEnCola)
- *   PENDIENTE  -> CANCELADO    (cancelar)
- *   EN_COLA    -> EJECUTANDO   (iniciar)      <- solo lo hace un trabajador
- *   EN_COLA    -> CANCELADO    (cancelar)
- *   EJECUTANDO -> COMPLETADO   (completar)
- *   EJECUTANDO -> FALLIDO      (fallar)
- */
 public class Trabajo {
 
     public enum Estado {
@@ -31,7 +16,7 @@ public class Trabajo {
 
     private static final AtomicLong SECUENCIA = new AtomicLong();
 
-    private final long orden = SECUENCIA.incrementAndGet(); // para ordenar los resultados
+    private final long orden = SECUENCIA.incrementAndGet(); 
     private final String id;
     private final String tipoOperacion;
     private final String rutaArchivo;
@@ -50,7 +35,7 @@ public class Trabajo {
         this.parametroAdicional = parametroAdicional;
     }
 
-    // ---- Datos que no cambian ----
+    
     public long getOrden() { return orden; }
     public String getId() { return id; }
     public String getTipoOperacion() { return tipoOperacion; }
@@ -58,21 +43,19 @@ public class Trabajo {
     public String getParametroAdicional() { return parametroAdicional; }
     public LocalDateTime getTiempoCreacion() { return tiempoCreacion; }
 
-    // ---- Datos que cambian (siempre leídos con synchronized) ----
+    
     public synchronized Estado getEstadoActual() { return estadoActual; }
     public synchronized String getResultado() { return resultado; }
     public synchronized LocalDateTime getTiempoInicio() { return tiempoInicio; }
     public synchronized LocalDateTime getTiempoFin() { return tiempoFin; }
 
-    /** Duración de la ejecución en milisegundos (0 si nunca se ejecutó). */
+    
     public synchronized long getDuracionMs() {
         if (tiempoInicio == null || tiempoFin == null) return 0;
         return Duration.between(tiempoInicio, tiempoFin).toMillis();
     }
 
-    // ---- Transiciones de estado ----
-    // Devuelven true si el cambio se hizo, false si el estado de partida no era el esperado.
-
+   
     public synchronized boolean marcarEnCola() {
         if (estadoActual != Estado.PENDIENTE) return false;
         estadoActual = Estado.EN_COLA;
@@ -80,7 +63,7 @@ public class Trabajo {
     }
 
     public synchronized boolean iniciar() {
-        if (estadoActual != Estado.EN_COLA) return false; // p. ej. ya estaba CANCELADO
+        if (estadoActual != Estado.EN_COLA) return false; 
         estadoActual = Estado.EJECUTANDO;
         tiempoInicio = LocalDateTime.now();
         return true;
@@ -102,7 +85,7 @@ public class Trabajo {
         return true;
     }
 
-    /** Solo se puede cancelar un trabajo que todavía NO ha empezado. */
+    
     public synchronized boolean cancelar(String motivo) {
         if (estadoActual != Estado.PENDIENTE && estadoActual != Estado.EN_COLA) return false;
         estadoActual = Estado.CANCELADO;

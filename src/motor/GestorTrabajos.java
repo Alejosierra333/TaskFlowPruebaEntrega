@@ -34,18 +34,6 @@ import modelos.Trabajo.Estado;
 import operaciones.AnalizadorTexto;
 import operaciones.BuscadorTexto;
 
-/**
- * Motor de TaskFlow: valida solicitudes, las mete en la cola, las ejecutan N trabajadores
- * (ExecutorService), muestra un resumen periódico (ScheduledExecutorService) y cierra de forma ordenada.
- *
- * POLÍTICA DE ADMISIÓN (cola llena): enviar() espera hasta 'admisionMs' a que se libere un hueco.
- *   - Si se libera: el trabajo se acepta (nunca se pierde).
- *   - Si no: la solicitud se RECHAZA ("cola llena"), no cuenta como aceptada y no queda registrada.
- *
- * POLÍTICA DE CIERRE: se dejan de aceptar solicitudes, los trabajadores terminan TODOS los trabajos
- *   pendientes y después se paran. Si tardan más de 'cierreSegundos', los que sigan en cola se
- *   CANCELAN y se interrumpe a los trabajadores (los que estaban ejecutándose pasan a FALLIDO).
- */
 public class GestorTrabajos {
 
     private static final Pattern ID_VALIDO = Pattern.compile("[A-Za-z0-9_-]{1,30}");
@@ -54,8 +42,8 @@ public class GestorTrabajos {
 
     private final Configuracion config;
     private final BlockingQueue<Trabajo> cola;
-    private final Map<String, Trabajo> registro = new ConcurrentHashMap<>(); // = trabajos ACEPTADOS
-    private final Object candado = new Object();       // protege "comprobar cierre + registrar + encolar"
+    private final Map<String, Trabajo> registro = new ConcurrentHashMap<>(); 
+    private final Object candado = new Object();      
     private volatile boolean aceptando = true;
     private final AtomicBoolean cerrado = new AtomicBoolean(false);
 
@@ -76,7 +64,7 @@ public class GestorTrabajos {
         this.cola = new LinkedBlockingQueue<>(config.capacidadCola);
         this.lanzador = new LanzadorProceso(MAX_PROCESOS_HIJOS, config.timeoutProcesoMs);
 
-        // Cada trabajador es un Callable que devuelve cuántos trabajos ha procesado (se lee con el Future).
+        
         this.trabajadores = Executors.newFixedThreadPool(config.trabajadores, fabricaHilos("trabajador-"));
         for (int i = 0; i < config.trabajadores; i++) {
             Callable<Integer> trabajador = this::bucleTrabajador;
@@ -87,7 +75,7 @@ public class GestorTrabajos {
         if (config.resumenSegundos > 0) {
             monitor.scheduleAtFixedRate(() -> {
                 try {
-                    // Solo se muestra si hay actividad, para no llenar la consola cuando no hay trabajos.
+                    
                     if (cola.size() > 0 || ocupados.get() > 0) System.out.println("\n[RESUMEN] " + resumen());
                 } catch (RuntimeException e) {
                     System.err.println("Error en el monitor: " + e);
@@ -101,11 +89,6 @@ public class GestorTrabajos {
         return r -> new Thread(r, prefijo + n.getAndIncrement());
     }
 
-    // =====================================================================
-    //  ENTRADA: validación y admisión
-    // =====================================================================
-
-    /** Valida y registra una solicitud "id;operacion;ruta;parametros". Devuelve ACEPTADO... o RECHAZADO... */
     public String enviar(String linea) {
         String[] c = linea.split(";", -1);
         String error = validar(c);
@@ -118,7 +101,7 @@ public class GestorTrabajos {
             if (!aceptando) return rechazarValidacion(linea, "el sistema se está cerrando");
             if (registro.putIfAbsent(id, t) != null) return rechazarValidacion(linea, "identificador duplicado: " + id);
 
-            // Se marca EN_COLA ANTES de insertarlo: así un trabajador que lo coja enseguida lo ve ya EN_COLA.
+            
             if (t.marcarEnCola()) {
                 try {
                     if (!cola.offer(t, config.admisionMs, TimeUnit.MILLISECONDS)) {
@@ -159,31 +142,27 @@ public class GestorTrabajos {
         return "RECHAZADO: " + motivo;
     }
 
-    // Se llama dentro del bloque synchronized(candado).
+    
     private String rechazarSaturacion(Trabajo t, String linea, String motivo) {
-        registro.remove(t.getId());      // no llegó a ser un trabajo aceptado
+        registro.remove(t.getId());      
         t.cancelar(motivo);
         rechazadasSaturacion.incrementAndGet();
         incidencias.add("RECHAZADA (saturación): " + linea + " -> " + motivo);
         return "RECHAZADO: " + motivo;
     }
 
-    // =====================================================================
-    //  TRABAJADORES
-    // =====================================================================
-
-    /** Bucle de cada trabajador: coge trabajos de la cola (bloqueado, sin espera activa) hasta el cierre. */
+   
     private Integer bucleTrabajador() {
         int procesados = 0;
         try {
             while (true) {
                 Trabajo t = cola.poll(200, TimeUnit.MILLISECONDS);
                 if (t == null) {
-                    // Cola vacía: solo se sale si ya no se aceptan trabajos y no queda ninguno.
+                    
                     if (!aceptando && cola.isEmpty()) break;
                     continue;
                 }
-                if (!t.iniciar()) continue; // estaba CANCELADO: no se ejecuta
+                if (!t.iniciar()) continue;
                 ocupados.incrementAndGet();
                 evento("[INICIO] " + t.getId() + " " + t.getTipoOperacion() + " (" + Thread.currentThread().getName() + ")");
                 try {
@@ -195,7 +174,7 @@ public class GestorTrabajos {
                 procesados++;
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // cierre forzado
+            Thread.currentThread().interrupt();
         }
         return procesados;
     }
@@ -228,7 +207,7 @@ public class GestorTrabajos {
         } catch (Exception e) {
             t.fallar(describir(e, t));
         } finally {
-            t.fallar("la ejecución terminó sin resultado"); // red de seguridad: nunca queda EJECUTANDO
+            t.fallar("la ejecución terminó sin resultado"); 
             if (t.getEstadoActual() == Estado.FALLIDO) {
                 incidencias.add("FALLIDO " + t.getId() + " (" + t.getTipoOperacion() + "): " + t.getResultado());
             }
@@ -239,7 +218,7 @@ public class GestorTrabajos {
         if (config.mostrarEventos) System.out.println("\n" + mensaje);
     }
 
-    /** Classpath que se le pasa al proceso hijo (útil para diagnosticar problemas de arranque). */
+   
     public String getClasspathHijo() { return lanzador.getClasspath(); }
 
     private void pausaDeDemostracion() throws InterruptedException {
@@ -253,15 +232,12 @@ public class GestorTrabajos {
         return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
-    // =====================================================================
-    //  CONSULTAS Y CANCELACIÓN
-    // =====================================================================
-
+   
     public String cancelar(String id) {
         Trabajo t = registro.get(id);
         if (t == null) return "No existe ningún trabajo aceptado con id '" + id + "'";
         if (t.cancelar("cancelado por el usuario antes de ejecutarse")) {
-            cola.remove(t); // libera el hueco (si un trabajador lo cogió a la vez, iniciar() fallará y lo descartará)
+            cola.remove(t); 
             incidencias.add("CANCELADO " + id + " por el usuario");
             return "Trabajo " + id + " cancelado.";
         }
@@ -280,7 +256,7 @@ public class GestorTrabajos {
         return n;
     }
 
-    /** Una línea con el estado del sistema (la usa el monitor periódico). */
+   
     public String resumen() {
         StringBuilder sb = new StringBuilder();
         sb.append("en_cola=").append(cola.size())
@@ -312,11 +288,7 @@ public class GestorTrabajos {
         return lista;
     }
 
-    // =====================================================================
-    //  BALANCE Y CIERRE
-    // =====================================================================
-
-    /** ACEPTADOS = COMPLETADOS + FALLIDOS + CANCELADOS (y ninguno en estado intermedio). */
+    
     public boolean balanceCorrecto() {
         int aceptados = registro.size();
         int finales = contar(Estado.COMPLETADO) + contar(Estado.FALLIDO) + contar(Estado.CANCELADO);
@@ -329,7 +301,7 @@ public class GestorTrabajos {
                 a, c, f, x, c + f + x, balanceCorrecto() ? "CORRECTO" : "INCORRECTO");
     }
 
-    /** Escribe resultados.csv e incidencias.txt en la carpeta de salida. */
+    
     public String exportar() throws IOException {
         Path dir = Path.of(config.dirSalida);
         GestorCSV.escribirResultados(dir.resolve("resultados.csv"), getTrabajos());
@@ -355,11 +327,11 @@ public class GestorTrabajos {
     public int getMaxProcesosHijoSimultaneos() { return lanzador.getMaximoSimultaneos(); }
     public Trabajo getTrabajo(String id) { return registro.get(id); }
 
-    /** Cierre ordenado. Se puede llamar varias veces; solo la primera hace algo. */
+    
     public void cerrar() {
         if (!cerrado.compareAndSet(false, true)) return;
 
-        synchronized (candado) { // espera a que termine cualquier enviar() en curso
+        synchronized (candado) { 
             aceptando = false;
         }
         trabajadores.shutdown();
@@ -376,7 +348,7 @@ public class GestorTrabajos {
             for (Trabajo t : restantes) {
                 if (t.cancelar("cancelado por cierre forzado")) incidencias.add("CANCELADO " + t.getId() + " por cierre forzado");
             }
-            trabajadores.shutdownNow(); // interrumpe a los trabajadores
+            trabajadores.shutdownNow(); 
             try {
                 trabajadores.awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -384,7 +356,7 @@ public class GestorTrabajos {
             }
         }
 
-        // Future: recoger cuántos trabajos procesó cada trabajador.
+        
         List<Integer> cuentas = new ArrayList<>();
         for (Future<Integer> f : futuros) {
             try {

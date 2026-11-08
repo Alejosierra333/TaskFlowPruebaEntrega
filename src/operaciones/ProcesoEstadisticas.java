@@ -8,26 +8,6 @@ import java.nio.file.Path;
 import java.nio.charset.CharacterCodingException;
 import java.util.Locale;
 
-/**
- * PROGRAMA HIJO de ESTADISTICAS_CSV. Se ejecuta como un proceso Java independiente:
- *
- *   java -cp <clases> operaciones.ProcesoEstadisticas <archivo.csv> <columna> <retardoMs>
- *
- * Protocolo con el proceso padre:
- *   - Éxito: escribe UNA línea por la salida estándar y termina con código 0:
- *       OK;cantidad=5;suma=81.00;media=16.20;minimo=5.25;maximo=30.25;descartados=2
- *   - Error: escribe el motivo por la salida de error y termina con código distinto de 0:
- *       código 1 = argumentos incorrectos
- *       código 2 = no se puede leer el archivo
- *       código 3 = el archivo no contiene ningún registro válido
- *
- * Criterios del CSV de datos:
- *   - Separador ';'. La primera línea es la cabecera y se ignora. Las líneas vacías se ignoran.
- *   - Se analiza una columna (la primera es la 1).
- *   - Registro VÁLIDO: tiene esa columna y su valor es un número con formato
- *     [signo]dígitos[.dígitos] (punto decimal, sin separador de miles ni notación científica).
- *   - Registro INVÁLIDO (descartado): no tiene la columna, está vacía o no es un número.
- */
 public class ProcesoEstadisticas {
 
     private static final String FORMATO_NUMERO = "[-+]?\\d+(\\.\\d+)?";
@@ -50,7 +30,7 @@ public class ProcesoEstadisticas {
         }
 
         try {
-            if (retardo > 0) Thread.sleep(retardo); // solo para pruebas
+            if (retardo > 0) Thread.sleep(retardo); 
             System.out.println(calcular(Path.of(args[0]), columna));
         } catch (NoSuchFileException e) {
             System.err.println("archivo no encontrado: " + e.getMessage());
@@ -79,7 +59,7 @@ public class ProcesoEstadisticas {
         double suma = 0, min = Double.MAX_VALUE, max = -Double.MAX_VALUE;
 
         try (BufferedReader lector = Files.newBufferedReader(archivo)) {
-            lector.readLine(); // cabecera
+            lector.readLine();
             String linea;
             while ((linea = lector.readLine()) != null) {
                 if (linea.isBlank()) continue;

@@ -6,15 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/**
- * BUSCAR_TEXTO: cuenta las apariciones de un término literal en uno o varios archivos.
- *
- * Criterios:
- *  - Búsqueda literal (no es una expresión regular) y distingue mayúsculas de minúsculas.
- *  - Se busca dentro de cada línea (un término no puede ocupar dos líneas).
- *  - Las apariciones no se solapan: "aa" en "aaaa" cuenta 2.
- *  - Si algún archivo no se puede leer, falla todo el trabajo.
- */
 public class BuscadorTexto {
 
     public static String buscar(List<Path> archivos, String termino) throws IOException {
